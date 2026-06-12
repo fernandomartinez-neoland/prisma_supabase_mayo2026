@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --import tsx --watch index.ts",
-    "mcp:start": "npx tsx mcp/mcp_server.ts"
+    "mcp:start": "npx tsx mcp/clients/mcp_client_gemini.ts"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +23,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "@google/genai": "^2.8.0"
   }
 }

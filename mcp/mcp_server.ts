@@ -30,6 +30,7 @@ console.error("Custom MCP stdio server: ready");
 rl.on("line", async (line) => {
   let msg: any = null;
   try {
+    //   console.log("line: ", line)
     msg = JSON.parse(line);
   } catch (err) {
     send({ id: null, ok: false, error: "invalid json" });
@@ -37,5 +38,5 @@ rl.on("line", async (line) => {
   }
 
   const id = msg.id ?? null;
-  send({ id, ok: true, error: "hola tu" });
+  send({ id, ok: true, result: "hola tu" });
 });
