@@ -32,11 +32,18 @@ rl.on("line", async (line) => {
   try {
     //   console.log("line: ", line)
     msg = JSON.parse(line);
+    // if(msg.message==="")
   } catch (err) {
     send({ id: null, ok: false, error: "invalid json" });
     return;
   }
-
+  
   const id = msg.id ?? null;
+  let lista;//variable lista que va a contener la lista de productos
+  if(msg.params.input==="lista de productos"){//escuchamos si el servidor recibe palabras concretas
+    lista=await prisma.products.findMany();//consultamos con prisma la lista de productos
+     send({ id, ok: true, result: lista });//devolvemos la lista de productos
+     await prisma.$disconnect();//descoenctamos la BD
+  }
   send({ id, ok: true, result: "hola tu" });
 });
