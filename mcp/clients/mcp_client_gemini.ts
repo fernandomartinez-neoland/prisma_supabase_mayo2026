@@ -1,12 +1,8 @@
 import "dotenv/config";
-import { GoogleGenAI } from "@google/genai";
 import { Ollama } from "ollama";
 
 import { spawn } from "child_process";
 import readline from "readline";
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing in .env");
 
 const ai = new Ollama({
   host: "https://ollama.com",

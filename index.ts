@@ -4,6 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import express from "express";
 import cors from "cors";
 
+import productRoutes from './routes/products.routes'
+
 const port = 3000;
 const api = express();
 api.use(express.json());
@@ -30,6 +32,9 @@ api.post("/", async (req: any, res: any) => {
   }
   res.send("holi");
 });
+
+
+api.use("/products", productRoutes)
 
 api.listen(port, () => {
   console.log(`http://localhost:${port}`);
