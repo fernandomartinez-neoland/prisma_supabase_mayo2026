@@ -1,12 +1,17 @@
 import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
+import { Ollama } from "ollama";
+
 import { spawn } from "child_process";
 import readline from "readline";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY missing in .env");
 
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const ai = new Ollama({
+  host: "https://ollama.com",
+  headers: { Authorization: "Bearer " + process.env.OLLAMA_API_KEY },
+});
 
 function spawnServer() {
   const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
@@ -16,7 +21,22 @@ function spawnServer() {
   });
 }
 
-function main() {
+async function reqAI(msg: any) {
+  const response = await ai.chat({
+    model: "gpt-oss:120b",
+    messages: [
+      {
+        role: "user",
+        content: `Analiza el mensaje "${msg}" y si el usuario esta solicitando la lista de productos tu vas a devolver el mensaje 'lista de productos'`,
+      },
+    ],
+    stream: true,
+  });
+
+  return response;
+}
+
+async function main() {
   const child = spawnServer();
 
   // Leer respuestas del servidor
@@ -54,7 +74,7 @@ function main() {
   });
 
   // Leer input del usuario y enviar al servidor
-  userReader.on("line", (userInput) => {
+  userReader.on("line", async (userInput) => {
     if (userInput.toLowerCase() === "exit") {
       console.log("\n👋 Cerrando cliente...");
       userReader.close();
@@ -69,10 +89,24 @@ function main() {
       params: { input: userInput },
     };
 
+    const responseStream: any = await reqAI(message.params.input);
+
+    let aiResponseText = "";
+
+    // 3. Consumimos el stream por completo
+    for await (const part of responseStream) {
+      if (part.message?.content) {
+        aiResponseText += part.message.content;
+      }
+    }
+    message.params.input = aiResponseText;
+
     send(message);
   });
 
-  console.log("✅ Cliente MCP conectado. Escribe mensajes (o 'exit' para salir):\n");
+  console.log(
+    "✅ Cliente MCP conectado. Escribe mensajes (o 'exit' para salir):\n",
+  );
 }
 
 main();

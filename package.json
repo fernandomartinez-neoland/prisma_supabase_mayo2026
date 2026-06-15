@@ -18,12 +18,13 @@
     "tsx": "^4.22.4"
   },
   "dependencies": {
+    "@google/genai": "^2.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "pg": "^8.21.0",
-    "@google/genai": "^2.8.0"
+    "ollama": "^0.6.3",
+    "pg": "^8.21.0"
   }
 }

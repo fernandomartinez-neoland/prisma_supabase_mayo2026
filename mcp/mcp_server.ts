@@ -44,6 +44,8 @@ rl.on("line", async (line) => {
     lista=await prisma.products.findMany();//consultamos con prisma la lista de productos
      send({ id, ok: true, result: lista });//devolvemos la lista de productos
      await prisma.$disconnect();//descoenctamos la BD
+  }else{
+
+    send({ id, ok: true, result: "si no quieres la lista de productos entonces no me jodas" });
   }
-  send({ id, ok: true, result: "hola tu" });
 });
