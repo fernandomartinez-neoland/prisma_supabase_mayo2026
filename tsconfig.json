@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"] // Si usas alias, asegúrate de que estén declarados
+    }
+  },
+  "include": [
+    "src/**/*", 
+    "mcp/**/*" // 👈 ¡Ojo! Añade aquí carpetas raíz que estén fuera de 'src' si quieres que salgan en el mapa
+  ],
+  "exclude": ["node_modules", "dist", "generated"]
+}

@@ -4,7 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import express from "express";
 import cors from "cors";
 
-import productRoutes from './routes/products.routes'
+import productRoutes from './src/routes/products.routes'
 
 const port = 3000;
 const api = express();
