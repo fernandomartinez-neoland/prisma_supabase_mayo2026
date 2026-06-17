@@ -2,11 +2,25 @@ import "dotenv/config";
 import { Ollama } from "ollama";
 import readline from "readline";
 import { spawn } from "child_process";
+import { GoogleGenAI } from "@google/genai";
 
-const ai = new Ollama({
+const aiOllama = new Ollama({
   host: "https://ollama.com",
   headers: { Authorization: "Bearer " + process.env.OLLAMA_API_KEY },
 });
+
+// conectamos a la api de la IA de google
+const aiGoogle = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+// esta funcion vectoriza lo que se manda a investigar
+async function crearVectorEnLaNube(texto: string) {
+  const response = await aiGoogle.models.embedContent({
+    model: "gemini-embedding-2",
+    contents: texto,
+    config: { outputDimensionality: 768 },
+  });
+  return response.embeddings[0].values;
+}
 
 function spawnServer() {
   const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
@@ -17,18 +31,16 @@ function spawnServer() {
 }
 
 async function reqAI(msg: any) {
-  const response = await ai.chat({
+  const response = await aiOllama.chat({
     model: "gpt-oss:120b",
     messages: [
       {
         role: "user",
-        content: `Analiza el mensaje "${msg}" y si el usuario esta solicitando la lista de productos tu vas a devolver el mensaje unicamente 'lista de productos', no quiero que envies algo diferente, no importa el contexto o las emociones, si estan pidiendo la lista de productos tu solo devuelve la cadenad e caracteres "lista de productos"`,
+        content: `Analiza el mensaje "${msg}". Si el usuario pide la lista completa de productos, devuelve UNICAMENTE 'lista de productos'. Si el usuario describe un producto, busca características, o pide recomendaciones, devuelve UNICAMENTE 'busqueda semantica'. No añades nada más.`,
       },
     ],
-    stream: true,
   });
-
-  return response;
+  return response.message.content?.trim();
 }
 
 //ESTA FUNCION LA IMPORTAMOS EN EL SERVICIO Y ES LA QUE ORQUESTA LAS INTERACCIONES
@@ -49,27 +61,39 @@ export async function mcpProductClient(msg: string): Promise<any> {
     child.stdin.write(payload + "\n");
   }
   messageId++;
-  const message = {
+  const messagePayload = {
     id: messageId,
     method: "tools/list",
     params: { input: msg },
   };
 
-  const responseStream: any = await reqAI(message.params.input);
+  const intencion: any = await reqAI(messagePayload.params.input);
 
   let aiResponseText = "";
 
-  // 3. Consumimos el stream por completo
-  for await (const part of responseStream) {
-    if (part.message?.content) {
-      aiResponseText += part.message.content;
-    }
+  if (intencion === "busqueda semantica") {
+    console.log("🔍 Ejecutando vectorización con gemini-embedding-2...");
+
+    // USAMOS TU FUNCIÓN PARA LA BÚSQUEDA
+    const vectorResult = await crearVectorEnLaNube(msg);
+
+    messagePayload.method = "tools/search_semantic";
+    messagePayload.params = {
+      embedding: vectorResult,
+      limit: 3, // Traer los 3 más parecidos
+    };
+  } else if (intencion === "lista de productos") {
+    messagePayload.method = "tools/list";
+    messagePayload.params = { input: "lista de productos" };
+  } else {
+    // Fallback por si la IA devuelve otra cosa
+    messagePayload.method = "tools/list";
+    messagePayload.params = { input: msg };
   }
-  message.params.input = aiResponseText;
 
-  send(message);
+  send(messagePayload);
 
-//   generamos una promesa para asegurar que la funcion siempre responda cuando el servidor mcp responda
+  //   generamos una promesa para asegurar que la funcion siempre responda cuando el servidor mcp responda
   return new Promise((resolve, reject) => {
     // Procesar respuestas del servidor
     serverReader.on("line", (line) => {

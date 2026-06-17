@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient } from "../generated/prisma/client.ts";
+import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import readline from "readline";
 
@@ -37,15 +37,49 @@ rl.on("line", async (line) => {
     send({ id: null, ok: false, error: "invalid json" });
     return;
   }
-  
-  const id = msg.id ?? null;
-  let lista;//variable lista que va a contener la lista de productos
-  if(msg.params.input==="lista de productos"){//escuchamos si el servidor recibe palabras concretas
-    lista=await prisma.products.findMany();//consultamos con prisma la lista de productos
-     send({ id, ok: true, result: lista });//devolvemos la lista de productos
-     await prisma.$disconnect();//descoenctamos la BD
-  }else{
 
-    send({ id, ok: true, result: "si no quieres la lista de productos entonces no me jodas" });
+  const id = msg.id ?? null;
+  let lista; //variable lista que va a contener la lista de productos
+  try {
+    console.error("ESTE ES EL METODO: ", msg.method)
+    // 1. NUEVA LÓGICA: Búsqueda Vectorial (Semántica)
+    if (msg.method === "tools/search_semantic" && msg.params?.embedding) {
+      // Transformamos el array de números en el formato string que exige pgvector: "[0.1, 0.2, ...]"
+      const vectorString = `[${msg.params.embedding.join(",")}]`;
+      const limite = msg.params.limit || 3;
+
+      // Usamos Raw SQL porque Prisma no tiene un método nativo ORM para el operador <=> (Distancia del coseno)
+      // Esto ordena toda la tabla devolviendo los más similares primero
+      const listaSimilares = await prisma.$queryRawUnsafe(
+        `
+        SELECT id, title, price, description 
+        FROM "Products" 
+        ORDER BY embedding <=> $1::vector 
+        LIMIT $2
+      `,
+        vectorString,
+        limite,
+      );
+
+      send({ id, ok: true, result: listaSimilares });
+      await prisma.$disconnect();
+
+      // 2. LÓGICA ORIGINAL: Lista de productos completa
+    } else if (msg.params?.input === "lista de productos") {
+      const listaCompleta = await prisma.products.findMany();
+      send({ id, ok: true, result: listaCompleta });
+      await prisma.$disconnect();
+
+      // 3. FALLBACK
+    } else {
+      send({
+        id,
+        ok: true,
+        result: "si no quieres la lista de productos entonces no me jodas",
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error en la base de datos MCP:", error);
+    send({ id, ok: false, error: "Error procesando la consulta en la BD" });
   }
 });
